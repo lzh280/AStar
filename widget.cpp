@@ -26,20 +26,20 @@ Widget::Widget(QWidget *parent)
     startPos = QPoint(3,7);
     endPos = QPoint(5,13);
 
-    Cell_t* pnewCell = (Cell_t*)malloc(sizeof(Cell_t));
-    memset(pnewCell,0,sizeof(Cell_t));
-    Cell_t* prootCell = pnewCell;
-    Cell_t* pparentCell = prootCell;
-    pnewCell->pos = startPos;
-    pnewCell->gCost = 0 * CELL_COST;
-    pnewCell->hCost = (endPos - pnewCell->pos).manhattanLength() * CELL_COST;
+    Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
+    memset(prootCell,0,sizeof(Cell_t));
+    prootCell->pos = startPos;
+    prootCell->gCost = 0 * CELL_COST;
+    prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
 
+    // 父节点，默认为起点
+    Cell_t* pparentCell = prootCell;
     //while (0)
     while (pparentCell->pos != endPos)
     {
         walkMark[pparentCell->pos.x()][pparentCell->pos.y()] = WALKED;
-        // 计算4个方向的代价，并使用最小代价进行行走，默认最大代价为当前代价的10倍
-        int minCost = (pnewCell->gCost + pnewCell->hCost) * 10;
+        // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
+        int minCost = (pparentCell->gCost + pparentCell->hCost) * 10;
         int minCostDirIdx = 0;
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             // 计算坐标，判断是否已经被探索过，如果探索过，就不再探索
@@ -55,7 +55,7 @@ Widget::Widget(QWidget *parent)
                 continue ;
             }
             // 先申请节点，，，，等找到最终路径，再一次性全部释放
-            pnewCell = (Cell_t*)malloc(sizeof(Cell_t));
+            Cell_t* pnewCell = (Cell_t*)malloc(sizeof(Cell_t));
             memset(pnewCell,0,sizeof(Cell_t));
             // 建立指向父节点，建立父节点指向本节点，进行记录，便于以后释放
             pnewCell->parent = pparentCell;
@@ -70,9 +70,18 @@ Widget::Widget(QWidget *parent)
             }
             qDebug() << "可选坐标：" << pnewCell->pos << "，及其代价：" << pnewCell->gCost << "," << pnewCell->hCost ;
         }
+        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pparentCell->Childs[minCostDirIdx]->pos;
+        // 存在走入死胡同，那么删除其父节点对本节点的链接，
+        // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
+        if (NULL == pparentCell->Childs[minCostDirIdx])
+        {
+            qDebug() << "死胡同，退出";
+            snakeOccupy[pparentCell->pos.x()][pparentCell->pos.y()] = 1;// 直接变砖，返回
+            pparentCell = pparentCell->parent;
+            continue;
+        }
         // 使用当前最小代价节点，当作父节点，，再次计算,
         pparentCell = pparentCell->Childs[minCostDirIdx];
-        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pparentCell->pos;
     }
     // 找到节点了，将路径输出，检查是否正确
     QPoint* proute = route;
