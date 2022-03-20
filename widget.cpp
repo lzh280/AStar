@@ -72,13 +72,22 @@ Widget::Widget(QWidget *parent)
         }
         // 存在走入死胡同，那么删除其父节点对本节点的链接，
         // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
+        // 试试忽略成已走过，，因为不想改变真实地图
+        //
         if (NULL == pnowCell->Childs[minCostDirIdx]
                 || -1 == minCostDirIdx)
         {
             qDebug() << "死胡同，退出";
-            snakeOccupy[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 直接变砖，返回
+            walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 忽略为已经走过，返回
             pnowCell = pnowCell->parent;
             continue;
+        }
+        // 如果发现有更低代价的路径，就使用更低代价的路径
+        // 当前子节点的代价，并非所有子节点中最低的代价，
+        // 那么需要重新遍历所有子节点，然后寻找最低代价？
+        {
+
+
         }
         qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 使用当前最小代价节点，当作当前节点，，再次计算,
