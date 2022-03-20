@@ -12,7 +12,7 @@ char snakeOccupy[ROW][COL] = {
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0,0,0, 0,0,0,0,1},
 
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0, 0,0,0,0,0,0,1},
-    {1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,1},
+    {1,0,0,0,0, 0,0,0,0,0, 1,1,1,1,1, 1,0,0,0,1},
     {1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,1},
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0,0,0, 0,0,0,0,1},
     {1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1},
@@ -40,7 +40,7 @@ Widget::Widget(QWidget *parent)
         walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
         // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
         int minCost = (pnowCell->gCost + pnowCell->hCost) * 10;
-        int minCostDirIdx = 0;
+        int minCostDirIdx = -1;
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             // 计算坐标，判断是否已经被探索过，如果探索过，就不再探索
             if (WALKED == walkMark[(pnowCell->pos + walkDir[dirIdex]).x()]
@@ -70,16 +70,17 @@ Widget::Widget(QWidget *parent)
             }
             qDebug() << "可选坐标：" << pchildCell->pos << "，及其代价：" << pchildCell->gCost << "," << pchildCell->hCost ;
         }
-        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 存在走入死胡同，那么删除其父节点对本节点的链接，
         // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
-        if (NULL == pnowCell->Childs[minCostDirIdx])
+        if (NULL == pnowCell->Childs[minCostDirIdx]
+                || -1 == minCostDirIdx)
         {
             qDebug() << "死胡同，退出";
             snakeOccupy[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 直接变砖，返回
             pnowCell = pnowCell->parent;
             continue;
         }
+        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 使用当前最小代价节点，当作当前节点，，再次计算,
         pnowCell = pnowCell->Childs[minCostDirIdx];
     }
