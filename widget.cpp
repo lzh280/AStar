@@ -33,61 +33,61 @@ Widget::Widget(QWidget *parent)
     prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
 
     // 父节点，默认为起点
-    Cell_t* pparentCell = prootCell;
+    Cell_t* pnowCell = prootCell;
     //while (0)
-    while (pparentCell->pos != endPos)
+    while (pnowCell->pos != endPos)
     {
-        walkMark[pparentCell->pos.x()][pparentCell->pos.y()] = WALKED;
+        walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
         // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
-        int minCost = (pparentCell->gCost + pparentCell->hCost) * 10;
+        int minCost = (pnowCell->gCost + pnowCell->hCost) * 10;
         int minCostDirIdx = 0;
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             // 计算坐标，判断是否已经被探索过，如果探索过，就不再探索
-            if (WALKED == walkMark[(pparentCell->pos + walkDir[dirIdex]).x()]
-                    [(pparentCell->pos + walkDir[dirIdex]).y()])
+            if (WALKED == walkMark[(pnowCell->pos + walkDir[dirIdex]).x()]
+                    [(pnowCell->pos + walkDir[dirIdex]).y()])
             {
                 continue ;
             }
             // 如果是障碍，那么就跳过
-            if (snakeOccupy[(pparentCell->pos + walkDir[dirIdex]).x()]
-                    [(pparentCell->pos + walkDir[dirIdex]).y()])
+            if (snakeOccupy[(pnowCell->pos + walkDir[dirIdex]).x()]
+                    [(pnowCell->pos + walkDir[dirIdex]).y()])
             {
                 continue ;
             }
             // 先申请节点，，，，等找到最终路径，再一次性全部释放
-            Cell_t* pnewCell = (Cell_t*)malloc(sizeof(Cell_t));
-            memset(pnewCell,0,sizeof(Cell_t));
+            Cell_t* pchildCell = (Cell_t*)malloc(sizeof(Cell_t));
+            memset(pchildCell,0,sizeof(Cell_t));
             // 建立指向父节点，建立父节点指向本节点，进行记录，便于以后释放
-            pnewCell->parent = pparentCell;
-            pparentCell->Childs[dirIdex] = pnewCell;
+            pchildCell->parent = pnowCell;
+            pnowCell->Childs[dirIdex] = pchildCell;
             // 计算坐标，计算代价，单位距离的代价是CELL_COST
-            pnewCell->pos = pparentCell->pos + walkDir[dirIdex];
-            pnewCell->gCost = pparentCell->gCost + CELL_COST;
-            pnewCell->hCost = (endPos - pnewCell->pos).manhattanLength() * CELL_COST;
-            if (pnewCell->gCost + pnewCell->hCost < minCost) {
-                minCost = pnewCell->gCost + pnewCell->hCost;
+            pchildCell->pos = pnowCell->pos + walkDir[dirIdex];
+            pchildCell->gCost = pnowCell->gCost + CELL_COST;
+            pchildCell->hCost = (endPos - pchildCell->pos).manhattanLength() * CELL_COST;
+            if (pchildCell->gCost + pchildCell->hCost < minCost) {
+                minCost = pchildCell->gCost + pchildCell->hCost;
                 minCostDirIdx = dirIdex;
             }
-            qDebug() << "可选坐标：" << pnewCell->pos << "，及其代价：" << pnewCell->gCost << "," << pnewCell->hCost ;
+            qDebug() << "可选坐标：" << pchildCell->pos << "，及其代价：" << pchildCell->gCost << "," << pchildCell->hCost ;
         }
-        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pparentCell->Childs[minCostDirIdx]->pos;
+        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 存在走入死胡同，那么删除其父节点对本节点的链接，
         // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
-        if (NULL == pparentCell->Childs[minCostDirIdx])
+        if (NULL == pnowCell->Childs[minCostDirIdx])
         {
             qDebug() << "死胡同，退出";
-            snakeOccupy[pparentCell->pos.x()][pparentCell->pos.y()] = 1;// 直接变砖，返回
-            pparentCell = pparentCell->parent;
+            snakeOccupy[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 直接变砖，返回
+            pnowCell = pnowCell->parent;
             continue;
         }
-        // 使用当前最小代价节点，当作父节点，，再次计算,
-        pparentCell = pparentCell->Childs[minCostDirIdx];
+        // 使用当前最小代价节点，当作当前节点，，再次计算,
+        pnowCell = pnowCell->Childs[minCostDirIdx];
     }
     // 找到节点了，将路径输出，检查是否正确
     QPoint* proute = route;
-    while (pparentCell->parent != NULL) {
-        *proute = pparentCell->pos;
-        pparentCell = pparentCell->parent;
+    while (pnowCell->parent != NULL) {
+        *proute = pnowCell->pos;
+        pnowCell = pnowCell->parent;
         ++proute;
     }
 }
