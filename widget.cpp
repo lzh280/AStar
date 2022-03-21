@@ -112,7 +112,7 @@ QPoint Change2Paint(QPoint srcPoint)
     QPoint dstPos;
     dstPos.setX(srcPoint.y());
     dstPos.setY(srcPoint.x());
-    dstPos = dstPos * 20 + QPoint(10,10);
+    dstPos = dstPos * 20;
     return  dstPos;
 }
 
@@ -120,27 +120,35 @@ QPoint Change2Paint(QPoint srcPoint)
 void Widget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    painter.setPen(qRgb(255,255,255));
+    // 黑色为墙，白色为空地
     for (int row = 0; row < ROW; row++) {
         for (int col = 0; col < COL; col++) {
             QPoint pos(row,col);
+            snakeOccupy[row][col] ?
+                        painter.setBrush(QBrush(qRgb(0,0,0)))
+                      :  painter.setBrush(QBrush(qRgb(255,255,255)));
             pos = Change2Paint(pos);
-            painter.drawText(pos,
-                             QString::number(snakeOccupy[row][col]));
+            painter.drawRect(QRect(pos,pos + QPoint(20,20)));
         }
     }
 
-    // 突出颜色显示起点与终点
-    painter.setPen(qRgb(255,00,0));
-    QPoint posPoint = Change2Paint(startPos);
-    painter.drawText(posPoint,"+");
-    posPoint = Change2Paint(endPos);
-    painter.drawText(posPoint,"=");
+    // 蓝色为路径
+    QPoint pos;
     QPoint* proute = route;
+    painter.setBrush(QBrush(qRgb(0,255,0)));
     while (QPoint(0,0) != *proute) {
-        posPoint = Change2Paint(*proute);
-        painter.drawText(posPoint,"8");
+        pos = Change2Paint(*proute);
+        painter.drawRect(QRect(pos,pos + QPoint(20,20)));
         ++proute;
     }
+    // 红色为起点，绿色为终点
+    painter.setBrush(QBrush(qRgb(255,0,0)));
+    pos = Change2Paint(startPos);
+    painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+    painter.setBrush(QBrush(qRgb(0,0,255)));
+    pos = Change2Paint(endPos);
+    painter.drawRect(QRect(pos,pos + QPoint(20,20)));
 
 }
 
