@@ -35,7 +35,6 @@ Widget::Widget(QWidget *parent)
     startBtn.move(500,100);
     connect(&startBtn,&QPushButton::clicked,[=](){
         // 清空寻路情况，并重新开始寻路
-        runTimer.start();
         AStarInit();
     });
     runTimer.setInterval(100);
@@ -58,6 +57,7 @@ void Widget::AStarInit()
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             if (NULL != pnowCell->Childs[dirIdex]) {
                 free(pnowCell->Childs[dirIdex]);
+                //pnowCell->Childs[dirIdex] = NULL;
             }
         }
         // 变成父节点，并且逐层寻找，并
@@ -75,6 +75,8 @@ void Widget::AStarInit()
     prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
     // 父节点，默认为起点
     pnowCell = prootCell;
+
+    runTimer.start();
 }
 
 
@@ -83,6 +85,18 @@ void Widget::AStarSearch(void)
     //while (0)
     //while (pnowCell->pos != endPos)
     {
+        // 死胡同，回溯到了起点以前，说明并没有可以到达终点路径，直接返回
+        if (NULL == pnowCell) {
+            runTimer.stop();
+            AStarInit();
+            return;
+        }
+        // 解决起点与终点重合时，直接卡死的bug
+        if (endPos == pnowCell->pos) {
+            runTimer.stop();
+            AStarInit();
+            return;
+        }
         walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
         // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
         int minCost = (pnowCell->gCost + pnowCell->hCost) * 10;
@@ -114,7 +128,7 @@ void Widget::AStarSearch(void)
                 minCost = pchildCell->gCost + pchildCell->hCost;
                 minCostDirIdx = dirIdex;
             }
-            qDebug() << "可选坐标：" << pchildCell->pos << "，及其代价：" << pchildCell->gCost << "," << pchildCell->hCost ;
+            //qDebug() << "可选坐标：" << pchildCell->pos << "，及其代价：" << pchildCell->gCost << "," << pchildCell->hCost ;
         }
         // 存在走入死胡同，那么删除其父节点对本节点的链接，
         // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
@@ -123,11 +137,14 @@ void Widget::AStarSearch(void)
         if (NULL == pnowCell->Childs[minCostDirIdx]
                 || -1 == minCostDirIdx)
         {
-            qDebug() << "死胡同，退出";
+            //qDebug() << "死胡同，退出";
             *nowPos = QPoint(-1,-1);
             --nowPos;
             walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 忽略为已经走过，返回
+            // 认定当前节点无效，临时存储一下，然后删除
+            Cell_t* tempCell = pnowCell;
             pnowCell = pnowCell->parent;
+            free(tempCell);
             return;//continue;
         }
         // 如果发现有更低代价的路径，就使用更低代价的路径
@@ -139,12 +156,9 @@ void Widget::AStarSearch(void)
         }
         *nowPos = pnowCell->Childs[minCostDirIdx]->pos;
         nowPos++;
-        qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
+        //qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 使用当前最小代价节点，当作当前节点，，再次计算,
         pnowCell = pnowCell->Childs[minCostDirIdx];
-        if (endPos == pnowCell->pos) {
-            runTimer.stop();
-        }
     }
 }
 
