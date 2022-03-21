@@ -46,9 +46,15 @@ public:
 
     ~Widget();
     void paintEvent(QPaintEvent *event) override;
+    void AStarSearch();
     QPoint startPos;
     QPoint endPos;
     QPoint route[100];
+    QPoint *nowPos;
+    QTimer runTimer;
+    QTimer updateTimer;
+    Cell_t* prootCell;
+    Cell_t* pnowCell;
 
 private:
     Ui::Widget *ui;

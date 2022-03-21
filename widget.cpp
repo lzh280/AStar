@@ -26,16 +26,42 @@ Widget::Widget(QWidget *parent)
     startPos = QPoint(3,7);
     endPos = QPoint(5,13);
 
-    Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
-    memset(prootCell,0,sizeof(Cell_t));
-    prootCell->pos = startPos;
-    prootCell->gCost = 0 * CELL_COST;
-    prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
+    prootCell = NULL;
+    pnowCell = NULL;
+    nowPos = route;
+    for (int i = 0; i< 100; ++i) {
+        route[i] = QPoint(-1,-1);
+    }
 
-    // 父节点，默认为起点
-    Cell_t* pnowCell = prootCell;
+    runTimer.setInterval(100);
+    runTimer.start();
+    connect(&runTimer,&QTimer::timeout,[=](){
+        AStarSearch();
+    });
+    updateTimer.setInterval(50);
+    updateTimer.start();
+    connect(&runTimer,&QTimer::timeout,[=](){
+        update();
+    });
+}
+
+void Widget::AStarSearch(void)
+{
+    static int firstFlag = 1;
+    // 仅允许一次
+    if (firstFlag) {
+        firstFlag = 0;
+        Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
+        memset(prootCell,0,sizeof(Cell_t));
+        prootCell->pos = startPos;
+        prootCell->gCost = 0 * CELL_COST;
+        prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
+        // 父节点，默认为起点
+        pnowCell = prootCell;
+    }
+
     //while (0)
-    while (pnowCell->pos != endPos)
+    //while (pnowCell->pos != endPos)
     {
         walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
         // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
@@ -78,9 +104,11 @@ Widget::Widget(QWidget *parent)
                 || -1 == minCostDirIdx)
         {
             qDebug() << "死胡同，退出";
+            *nowPos = QPoint(-1,-1);
+            --nowPos;
             walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 忽略为已经走过，返回
             pnowCell = pnowCell->parent;
-            continue;
+            return;//continue;
         }
         // 如果发现有更低代价的路径，就使用更低代价的路径
         // 当前子节点的代价，并非所有子节点中最低的代价，
@@ -89,16 +117,14 @@ Widget::Widget(QWidget *parent)
 
 
         }
+        *nowPos = pnowCell->Childs[minCostDirIdx]->pos;
+        nowPos++;
         qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
         // 使用当前最小代价节点，当作当前节点，，再次计算,
         pnowCell = pnowCell->Childs[minCostDirIdx];
-    }
-    // 找到节点了，将路径输出，检查是否正确
-    QPoint* proute = route;
-    while (pnowCell->parent != NULL) {
-        *proute = pnowCell->pos;
-        pnowCell = pnowCell->parent;
-        ++proute;
+        if (endPos == pnowCell->pos) {
+            runTimer.stop();
+        }
     }
 }
 
@@ -137,7 +163,7 @@ void Widget::paintEvent(QPaintEvent *)
     QPoint pos;
     QPoint* proute = route;
     painter.setBrush(QBrush(qRgb(0,255,0)));
-    while (QPoint(0,0) != *proute) {
+    while (QPoint(-1,-1) != *proute) {
         pos = Change2Paint(*proute);
         painter.drawRect(QRect(pos,pos + QPoint(20,20)));
         ++proute;
