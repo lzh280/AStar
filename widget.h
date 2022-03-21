@@ -7,11 +7,14 @@
 #include <QTimer>
 #include <QTime>
 #include <QDebug>
+#include <QMouseEvent>
+#include <QPushButton>
 
 #define ROW 10 // 行，常用于x
 #define COL 20 // 列，常用于y
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
+#define SCALE (20)
 
 #define DIR_UP      QPoint(-1,0)
 #define DIR_DOWN    QPoint(1,0)
@@ -46,15 +49,19 @@ public:
 
     ~Widget();
     void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void AStarInit();
     void AStarSearch();
     QPoint startPos;
     QPoint endPos;
     QPoint route[100];
     QPoint *nowPos;
+    QPoint mousePos;
     QTimer runTimer;
     QTimer updateTimer;
     Cell_t* prootCell;
     Cell_t* pnowCell;
+    QPushButton startBtn;
 
 private:
     Ui::Widget *ui;

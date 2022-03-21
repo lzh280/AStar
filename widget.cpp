@@ -28,38 +28,58 @@ Widget::Widget(QWidget *parent)
 
     prootCell = NULL;
     pnowCell = NULL;
-    nowPos = route;
-    for (int i = 0; i< 100; ++i) {
-        route[i] = QPoint(-1,-1);
-    }
+    AStarInit();
 
+    startBtn.setParent(this);
+    startBtn.setText("点击重新开始寻路");
+    startBtn.move(500,100);
+    connect(&startBtn,&QPushButton::clicked,[=](){
+        // 清空寻路情况，并重新开始寻路
+        runTimer.start();
+        AStarInit();
+    });
     runTimer.setInterval(100);
-    runTimer.start();
+    //runTimer.start();
     connect(&runTimer,&QTimer::timeout,[=](){
         AStarSearch();
     });
     updateTimer.setInterval(50);
     updateTimer.start();
-    connect(&runTimer,&QTimer::timeout,[=](){
+    connect(&updateTimer,&QTimer::timeout,[=](){
         update();
     });
 }
 
+void Widget::AStarInit()
+{
+    // 先判断，判断是否存在历史残留的路径，需要释放内存
+    if (NULL != pnowCell)
+    {
+        for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
+            if (NULL != pnowCell->Childs[dirIdex]) {
+                free(pnowCell->Childs[dirIdex]);
+            }
+        }
+        // 变成父节点，并且逐层寻找，并
+        pnowCell = pnowCell->parent;
+    }
+    nowPos = route;
+    for (int i = 0; i< 100; ++i) {
+        route[i] = QPoint(-1,-1);
+    }
+    memset(walkMark,0,sizeof(walkMark));
+    Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
+    memset(prootCell,0,sizeof(Cell_t));
+    prootCell->pos = startPos;
+    prootCell->gCost = 0 * CELL_COST;
+    prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
+    // 父节点，默认为起点
+    pnowCell = prootCell;
+}
+
+
 void Widget::AStarSearch(void)
 {
-    static int firstFlag = 1;
-    // 仅允许一次
-    if (firstFlag) {
-        firstFlag = 0;
-        Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
-        memset(prootCell,0,sizeof(Cell_t));
-        prootCell->pos = startPos;
-        prootCell->gCost = 0 * CELL_COST;
-        prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
-        // 父节点，默认为起点
-        pnowCell = prootCell;
-    }
-
     //while (0)
     //while (pnowCell->pos != endPos)
     {
@@ -138,10 +158,21 @@ QPoint Change2Paint(QPoint srcPoint)
     QPoint dstPos;
     dstPos.setX(srcPoint.y());
     dstPos.setY(srcPoint.x());
-    dstPos = dstPos * 20;
+    dstPos = dstPos * SCALE;
     return  dstPos;
 }
 
+void Widget::mousePressEvent(QMouseEvent *e)
+{
+    // 需要将鼠标点击坐标转换为二维数组坐标
+    mousePos = e->pos();
+    // qpoint类的除号重载，使用了浮点运算，且四舍五入
+    mousePos.rx() /= SCALE;
+    mousePos.ry() /= SCALE;
+    // 在坐标系中的xy与数组中xy是相反的，切记。
+    snakeOccupy[mousePos.y()][mousePos.x()]
+            = ! snakeOccupy[mousePos.y()][mousePos.x()];
+}
 
 void Widget::paintEvent(QPaintEvent *)
 {
@@ -151,9 +182,9 @@ void Widget::paintEvent(QPaintEvent *)
     for (int row = 0; row < ROW; row++) {
         for (int col = 0; col < COL; col++) {
             QPoint pos(row,col);
-            snakeOccupy[row][col] ?
-                        painter.setBrush(QBrush(qRgb(0,0,0)))
-                      :  painter.setBrush(QBrush(qRgb(255,255,255)));
+            snakeOccupy[row][col]
+                    ? painter.setBrush(QBrush(qRgb(0,0,0)))
+                    : painter.setBrush(QBrush(qRgb(255,255,255)));
             pos = Change2Paint(pos);
             painter.drawRect(QRect(pos,pos + QPoint(20,20)));
         }
