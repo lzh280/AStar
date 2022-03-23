@@ -64,7 +64,7 @@ void Widget::AStarInit()
         pnowCell = pnowCell->parent;
     }
     nowPos = route;
-    for (int i = 0; i< 100; ++i) {
+    for (int i = 0; i< ROUTE_LEN; ++i) {
         route[i] = QPoint(-1,-1);
     }
     memset(walkMark,0,sizeof(walkMark));
@@ -102,16 +102,13 @@ void Widget::AStarSearch(void)
         int minCost = (pnowCell->gCost + pnowCell->hCost) * 10;
         int minCostDirIdx = -1;
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
-            // 计算坐标，判断是否已经被探索过，如果探索过，就不再探索
-            if (WALKED == walkMark[(pnowCell->pos + walkDir[dirIdex]).x()]
-                    [(pnowCell->pos + walkDir[dirIdex]).y()])
-            {
-                continue ;
-            }
-            // 如果是障碍，那么就跳过
-            if (snakeOccupy[(pnowCell->pos + walkDir[dirIdex]).x()]
-                    [(pnowCell->pos + walkDir[dirIdex]).y()])
-            {
+            int childX = (pnowCell->pos + walkDir[dirIdex]).x();
+            int childY = (pnowCell->pos + walkDir[dirIdex]).y();
+
+            // 如果即将访问的节点超出范围 或 已探索 或 是墙壁，那么跳过
+            if (childX < 0 || ROW <= childX || childY < 0 || COL <= childY
+                    || WALKED == walkMark[childX][childY]
+                    || snakeOccupy[childX][childY]) {
                 continue ;
             }
             // 先申请节点，，，，等找到最终路径，再一次性全部释放
@@ -220,6 +217,18 @@ void Widget::paintEvent(QPaintEvent *)
     painter.setBrush(QBrush(qRgb(0,0,255)));
     pos = Change2Paint(endPos);
     painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+
+    // 左上黄色小格，代表探索过
+    painter.setBrush(QBrush(qRgb(255,255,0)));
+    for (int row = 0; row < ROW; row++) {
+        for (int col = 0; col < COL; col++) {
+            QPoint pos(row,col);
+            if (walkMark[row][col]) {
+                pos = Change2Paint(pos);
+                painter.drawRect(QRect(pos,pos + QPoint(10,10)));
+            }
+        }
+    }
 
 }
 

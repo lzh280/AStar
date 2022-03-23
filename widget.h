@@ -10,12 +10,14 @@
 #include <QMouseEvent>
 #include <QPushButton>
 
-#define ROW 10 // 行，常用于x
-#define COL 20 // 列，常用于y
+#define ROW 20 // 行，常用于x
+#define COL 30 // 列，常用于y
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
 #define SCALE (20)
+#define ROUTE_LEN (1000)
 
+// 定义对数组的方向，前面坐标控制上下，后面坐标控制左右
 #define DIR_UP      QPoint(-1,0)
 #define DIR_DOWN    QPoint(1,0)
 #define DIR_LEFT    QPoint(0,-1)
@@ -54,7 +56,7 @@ public:
     void AStarSearch();
     QPoint startPos;
     QPoint endPos;
-    QPoint route[100];
+    QPoint route[1000];
     QPoint *nowPos;
     QPoint mousePos;
     QTimer runTimer;
