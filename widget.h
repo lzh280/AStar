@@ -54,10 +54,13 @@ public:
     void mousePressEvent(QMouseEvent *event) override;
     void AStarInit();
     void AStarSearch();
+    void AStarSave();
+    void PushCostCell(Cell_t* pCell);
+    Cell_t* PopMinCostCell(void);
     QPoint startPos;
     QPoint endPos;
     QPoint route[1000];
-    QPoint *nowPos;
+    QPoint *pnowPos;
     QPoint mousePos;
     QTimer runTimer;
     QTimer updateTimer;

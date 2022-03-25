@@ -2,13 +2,15 @@
 #include "ui_widget.h"
 
 // 辅助地图，用于记录是否走过
+int cellCostCnt = 0;
 char walkMark[ROW][COL] = {0};
+Cell_Struct *cellCost[ROW * COL] = {0};
 QPoint walkDir[4] = {DIR_UP,DIR_DOWN,DIR_LEFT,DIR_RIGHT};
 char snakeOccupy[ROW][COL] = {
     {1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1},
     {1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,1},
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0,0,0, 0,0,0,0,1},
-    {1,0,0,0,0, 0, 0,0,1,1,1,0,0,0,0, 0,0,0,0,1},
+    {1,0,0,0,0, 0,0,0,1,1, 1,0,0,0,0, 0,0,0,0,1},
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0,0,0, 0,0,0,0,1},
 
     {1,0,0,0,0, 0,0,0,0,0, 1,0,0, 0,0,0,0,0,0,1},
@@ -37,7 +39,7 @@ Widget::Widget(QWidget *parent)
         // 清空寻路情况，并重新开始寻路
         AStarInit();
     });
-    runTimer.setInterval(100);
+    runTimer.setInterval(10);
     //runTimer.start();
     connect(&runTimer,&QTimer::timeout,[=](){
         AStarSearch();
@@ -51,6 +53,7 @@ Widget::Widget(QWidget *parent)
 
 void Widget::AStarInit()
 {
+    qDebug() << "现在清空所有数据，重新开始寻路。";
     // 先判断，判断是否存在历史残留的路径，需要释放内存
     if (NULL != pnowCell)
     {
@@ -63,10 +66,12 @@ void Widget::AStarInit()
         // 变成父节点，并且逐层寻找，并
         pnowCell = pnowCell->parent;
     }
-    nowPos = route;
+    pnowPos = route;
     for (int i = 0; i< ROUTE_LEN; ++i) {
         route[i] = QPoint(-1,-1);
     }
+    memset(cellCost,0,sizeof(cellCost));
+    cellCostCnt = 0;
     memset(walkMark,0,sizeof(walkMark));
     Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
     memset(prootCell,0,sizeof(Cell_t));
@@ -78,7 +83,72 @@ void Widget::AStarInit()
 
     runTimer.start();
 }
+void Widget::AStarSave(void)
+{
+    Cell_t *pbackCell = pnowCell;
+    while (pbackCell->pos != startPos) {
+        *pnowPos = pbackCell->pos;
+        ++pnowPos;
+        pbackCell = pbackCell->parent;
+    }
+}
 
+void Widget::PushCostCell(Cell_t* pCell)
+{
+    int emptyCellIdx = 0;
+    // 找到空元素，直接载入
+    for (int cellIdx = 0; cellIdx < ROW * COL; ++cellIdx) {
+        if (NULL == cellCost[cellIdx]
+                && 0 == emptyCellIdx) {
+            emptyCellIdx = cellIdx;
+            continue;
+            //break;
+        }
+        if (NULL != cellCost[cellIdx]
+                && pCell->pos == cellCost[cellIdx]->pos) {
+            // 找到本身，直接返回
+            emptyCellIdx = cellIdx;
+            break;
+        }
+    }
+    cellCost[emptyCellIdx] = pCell;
+    qDebug() << "入buff[" << emptyCellIdx << "]："
+             << pCell->pos << "，及其代价：" << pCell->gCost << "," << pCell->hCost ;
+}
+
+Cell_t* Widget::PopMinCostCell()
+{
+    // 从内存内寻找最小代价的cell
+    Cell_t* pminCostCell = NULL;
+    int minCellIdx = 0;
+    // 下标为0的元素，可能是空的，所以需要查找到第一个非空元素
+    while (NULL == cellCost[minCellIdx]
+           && minCellIdx < ROW * COL) {
+        ++minCellIdx;
+    }
+    for (int cellIdx = minCellIdx; cellIdx < ROW * COL; ++cellIdx)
+    {
+        if ( NULL == cellCost[cellIdx]) {
+            continue;
+        }
+        if ( cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost
+              > cellCost[cellIdx]->gCost + cellCost[cellIdx]->hCost)
+        {
+            minCellIdx = cellIdx;
+        }
+
+    }
+
+    if (minCellIdx >= ROW * COL) {
+        return NULL;
+    }
+    // 记录，并且从buffer内删除，然后返回最小的元素
+    pminCostCell = cellCost[minCellIdx];
+    qDebug() << "出buff[" << minCellIdx << "]：" << pminCostCell->pos
+             << "，及其代价：" << pminCostCell->gCost << "," << pminCostCell->hCost ;
+    cellCost[minCellIdx] = NULL;
+    return  pminCostCell;
+}
 
 void Widget::AStarSearch(void)
 {
@@ -94,13 +164,10 @@ void Widget::AStarSearch(void)
         // 解决起点与终点重合时，直接卡死的bug
         if (endPos == pnowCell->pos) {
             runTimer.stop();
+            AStarSave();
             AStarInit();
             return;
         }
-        walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
-        // 计算4个方向的代价，并使用最小代价进行行走，默认最小代价为当前代价的10倍
-        int minCost = (pnowCell->gCost + pnowCell->hCost) * 10;
-        int minCostDirIdx = -1;
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             int childX = (pnowCell->pos + walkDir[dirIdex]).x();
             int childY = (pnowCell->pos + walkDir[dirIdex]).y();
@@ -121,41 +188,21 @@ void Widget::AStarSearch(void)
             pchildCell->pos = pnowCell->pos + walkDir[dirIdex];
             pchildCell->gCost = pnowCell->gCost + CELL_COST;
             pchildCell->hCost = (endPos - pchildCell->pos).manhattanLength() * CELL_COST;
-            if (pchildCell->gCost + pchildCell->hCost < minCost) {
-                minCost = pchildCell->gCost + pchildCell->hCost;
-                minCostDirIdx = dirIdex;
-            }
-            //qDebug() << "可选坐标：" << pchildCell->pos << "，及其代价：" << pchildCell->gCost << "," << pchildCell->hCost ;
+            // 将节点装入buffer
+            PushCostCell(pchildCell);
         }
-        // 存在走入死胡同，那么删除其父节点对本节点的链接，
-        // 恢复父节点的路过状态，，，并将当前坐标忽略为墙体
-        // 试试忽略成已走过，，因为不想改变真实地图
-        //
-        if (NULL == pnowCell->Childs[minCostDirIdx]
-                || -1 == minCostDirIdx)
-        {
-            //qDebug() << "死胡同，退出";
-            *nowPos = QPoint(-1,-1);
-            --nowPos;
-            walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = 1;// 忽略为已经走过，返回
-            // 认定当前节点无效，临时存储一下，然后删除
-            Cell_t* tempCell = pnowCell;
-            pnowCell = pnowCell->parent;
-            free(tempCell);
-            return;//continue;
+        // 寻找最小代价节点进行弹出
+        pnowCell = PopMinCostCell();
+        if (NULL == pnowCell) {
+            runTimer.stop();
+            return;
         }
-        // 如果发现有更低代价的路径，就使用更低代价的路径
-        // 当前子节点的代价，并非所有子节点中最低的代价，
-        // 那么需要重新遍历所有子节点，然后寻找最低代价？
-        {
-
-
-        }
-        *nowPos = pnowCell->Childs[minCostDirIdx]->pos;
-        nowPos++;
-        //qDebug() << "所选方向" << walkDir[minCostDirIdx] << ",所到达的坐标" << pnowCell->Childs[minCostDirIdx]->pos;
+        // 将路径记录下来
+        walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
+        qDebug() << "所选基点：" << pnowCell->pos
+                 << "，及其代价：" << pnowCell->gCost << "," << pnowCell->hCost ;
         // 使用当前最小代价节点，当作当前节点，，再次计算,
-        pnowCell = pnowCell->Childs[minCostDirIdx];
+        //pnowCell = pnowCell->Childs[minCostDirIdx];
     }
 }
 
