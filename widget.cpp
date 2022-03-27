@@ -31,14 +31,20 @@ Widget::Widget(QWidget *parent)
     prootCell = NULL;
     pnowCell = NULL;
     AStarInit();
+    qsrand(QTime::currentTime().msec());
 
     startBtn.setParent(this);
     startBtn.setText("点击重新开始寻路");
-    startBtn.move(500,100);
+    startBtn.move((COL + 1) * SCALE, 100);
     connect(&startBtn,&QPushButton::clicked,[=](){
         // 清空寻路情况，并重新开始寻路
         AStarInit();
     });
+
+    randMapCheckBox.setParent(this);
+    randMapCheckBox.setText("是否启用生成随机地图");
+    randMapCheckBox.move((COL + 1) * SCALE, 150);
+
     runTimer.setInterval(10);
     //runTimer.start();
     connect(&runTimer,&QTimer::timeout,[=](){
@@ -53,6 +59,29 @@ Widget::Widget(QWidget *parent)
 
 void Widget::AStarInit()
 {
+    // 加入选项，可以选择不生成随机地图
+    if (randMapCheckBox.isChecked()) {
+        for (int i = 0; i < COL * ROW; i++) {
+            if ( rand() % 3 == 0) {
+                snakeOccupy[i / COL][i % COL] = 1;
+            } else {
+                snakeOccupy[i / COL][i % COL] = 0;
+
+            }
+        }
+        QPoint pos;
+        pos = QPoint(rand() % ROW,rand() % COL);
+        while (snakeOccupy[pos.x()][pos.y()] != 0) {
+            pos = QPoint(rand() % ROW,rand() % COL);
+        }
+        startPos = pos;
+        pos = QPoint(rand() % ROW,rand() % COL);
+        while (snakeOccupy[pos.x()][pos.y()] != 0) {
+            pos = QPoint(rand() % ROW,rand() % COL);
+        }
+        endPos = pos;
+
+    }
     qDebug() << "现在清空所有数据，重新开始寻路。";
     // 先判断，判断是否存在历史残留的路径，需要释放内存
     if (NULL != pnowCell)
@@ -158,14 +187,14 @@ void Widget::AStarSearch(void)
         // 死胡同，回溯到了起点以前，说明并没有可以到达终点路径，直接返回
         if (NULL == pnowCell) {
             runTimer.stop();
-            AStarInit();
+            //AStarInit();
             return;
         }
         // 解决起点与终点重合时，直接卡死的bug
         if (endPos == pnowCell->pos) {
             runTimer.stop();
             AStarSave();
-            AStarInit();
+            //AStarInit();
             return;
         }
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
@@ -228,6 +257,9 @@ void Widget::mousePressEvent(QMouseEvent *e)
     mousePos.rx() /= SCALE;
     mousePos.ry() /= SCALE;
     // 在坐标系中的xy与数组中xy是相反的，切记。
+    // y在数组的前面一个坐标，代表第多少行，放置鼠标导致越界
+    if (0 < mousePos.y() && mousePos.y() < ROW
+            && 0 < mousePos.x() && mousePos.x() < COL)
     snakeOccupy[mousePos.y()][mousePos.x()]
             = ! snakeOccupy[mousePos.y()][mousePos.x()];
 }
@@ -244,7 +276,19 @@ void Widget::paintEvent(QPaintEvent *)
                     ? painter.setBrush(QBrush(qRgb(0,0,0)))
                     : painter.setBrush(QBrush(qRgb(255,255,255)));
             pos = Change2Paint(pos);
-            painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+            painter.drawRect(QRect(pos,pos + CELL_SIZE));
+        }
+    }
+
+    // 左上黄色小格，代表探索过
+    painter.setBrush(QBrush(qRgb(255,255,0)));
+    for (int row = 0; row < ROW; row++) {
+        for (int col = 0; col < COL; col++) {
+            QPoint pos(row,col);
+            if (walkMark[row][col]) {
+                pos = Change2Paint(pos);
+                painter.drawRect(QRect(pos,pos + CELL_SIZE));
+            }
         }
     }
 
@@ -254,28 +298,17 @@ void Widget::paintEvent(QPaintEvent *)
     painter.setBrush(QBrush(qRgb(0,255,0)));
     while (QPoint(-1,-1) != *proute) {
         pos = Change2Paint(*proute);
-        painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+        painter.drawRect(QRect(pos,pos + CELL_SIZE));
         ++proute;
     }
     // 红色为起点，绿色为终点
     painter.setBrush(QBrush(qRgb(255,0,0)));
     pos = Change2Paint(startPos);
-    painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+    painter.drawRect(QRect(pos,pos + CELL_SIZE));
     painter.setBrush(QBrush(qRgb(0,0,255)));
     pos = Change2Paint(endPos);
-    painter.drawRect(QRect(pos,pos + QPoint(20,20)));
+    painter.drawRect(QRect(pos,pos + CELL_SIZE));
 
-    // 左上黄色小格，代表探索过
-    painter.setBrush(QBrush(qRgb(255,255,0)));
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            QPoint pos(row,col);
-            if (walkMark[row][col]) {
-                pos = Change2Paint(pos);
-                painter.drawRect(QRect(pos,pos + QPoint(10,10)));
-            }
-        }
-    }
 
 }
 

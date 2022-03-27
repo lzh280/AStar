@@ -9,9 +9,10 @@
 #include <QDebug>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QCheckBox>
 
-#define ROW 20 // 行，常用于x
-#define COL 30 // 列，常用于y
+#define ROW 20 // 行，常用于x，数组前下标
+#define COL 30 // 列，常用于y，数组后下标
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
 #define SCALE (20)
@@ -22,6 +23,7 @@
 #define DIR_DOWN    QPoint(1,0)
 #define DIR_LEFT    QPoint(0,-1)
 #define DIR_RIGHT   QPoint(0,1)
+#define CELL_SIZE   QPoint(SCALE,SCALE)
 
 // F = G + H
 // gCost为当前已走的代价
@@ -67,7 +69,7 @@ public:
     Cell_t* prootCell;
     Cell_t* pnowCell;
     QPushButton startBtn;
-
+    QCheckBox randMapCheckBox;
 private:
     Ui::Widget *ui;
 };
