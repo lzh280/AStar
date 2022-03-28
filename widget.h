@@ -16,7 +16,6 @@
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
 #define SCALE (20)
-#define ROUTE_LEN (1000)
 
 // 定义对数组的方向，前面坐标控制上下，后面坐标控制左右
 #define DIR_UP      QPoint(-1,0)
@@ -61,7 +60,7 @@ public:
     Cell_t* PopMinCostCell(void);
     QPoint startPos;
     QPoint endPos;
-    QPoint route[1000];
+    QPoint route[ROW * COL];
     QPoint *pnowPos;
     QPoint mousePos;
     QTimer runTimer;

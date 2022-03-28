@@ -96,7 +96,7 @@ void Widget::AStarInit()
         pnowCell = pnowCell->parent;
     }
     pnowPos = route;
-    for (int i = 0; i< ROUTE_LEN; ++i) {
+    for (int i = 0; i< ROW * COL; ++i) {
         route[i] = QPoint(-1,-1);
     }
     memset(cellCost,0,sizeof(cellCost));
@@ -107,8 +107,8 @@ void Widget::AStarInit()
     prootCell->pos = startPos;
     prootCell->gCost = 0 * CELL_COST;
     prootCell->hCost = (endPos - prootCell->pos).manhattanLength() * CELL_COST;
-    // 父节点，默认为起点
-    pnowCell = prootCell;
+    // 将根节点（起点）塞入可寻址buffer内，然后开始寻路
+    PushCostCell(prootCell);
 
     runTimer.start();
 }
@@ -184,7 +184,8 @@ void Widget::AStarSearch(void)
     //while (0)
     //while (pnowCell->pos != endPos)
     {
-        // 死胡同，回溯到了起点以前，说明并没有可以到达终点路径，直接返回
+        // 寻找最小代价节点进行弹出
+        pnowCell = PopMinCostCell();
         if (NULL == pnowCell) {
             runTimer.stop();
             //AStarInit();
@@ -197,6 +198,11 @@ void Widget::AStarSearch(void)
             //AStarInit();
             return;
         }
+        // 将路径记录下来
+        walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
+        qDebug() << "所选基点：" << pnowCell->pos
+                 << "，及其代价：" << pnowCell->gCost << "," << pnowCell->hCost ;
+
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             int childX = (pnowCell->pos + walkDir[dirIdex]).x();
             int childY = (pnowCell->pos + walkDir[dirIdex]).y();
@@ -220,18 +226,6 @@ void Widget::AStarSearch(void)
             // 将节点装入buffer
             PushCostCell(pchildCell);
         }
-        // 寻找最小代价节点进行弹出
-        pnowCell = PopMinCostCell();
-        if (NULL == pnowCell) {
-            runTimer.stop();
-            return;
-        }
-        // 将路径记录下来
-        walkMark[pnowCell->pos.x()][pnowCell->pos.y()] = WALKED;
-        qDebug() << "所选基点：" << pnowCell->pos
-                 << "，及其代价：" << pnowCell->gCost << "," << pnowCell->hCost ;
-        // 使用当前最小代价节点，当作当前节点，，再次计算,
-        //pnowCell = pnowCell->Childs[minCostDirIdx];
     }
 }
 
@@ -258,8 +252,8 @@ void Widget::mousePressEvent(QMouseEvent *e)
     mousePos.ry() /= SCALE;
     // 在坐标系中的xy与数组中xy是相反的，切记。
     // y在数组的前面一个坐标，代表第多少行，放置鼠标导致越界
-    if (0 < mousePos.y() && mousePos.y() < ROW
-            && 0 < mousePos.x() && mousePos.x() < COL)
+    if (0 <= mousePos.y() && mousePos.y() < ROW
+            && 0 <= mousePos.x() && mousePos.x() < COL)
     snakeOccupy[mousePos.y()][mousePos.x()]
             = ! snakeOccupy[mousePos.y()][mousePos.x()];
 }
@@ -267,19 +261,9 @@ void Widget::mousePressEvent(QMouseEvent *e)
 void Widget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    painter.drawLine(QPoint(0, ROW) * SCALE,QPoint(COL, ROW) * SCALE);
+    painter.drawLine(QPoint(COL, 0) * SCALE,QPoint(COL, ROW) * SCALE);
     painter.setPen(qRgb(255,255,255));
-    // 黑色为墙，白色为空地
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            QPoint pos(row,col);
-            snakeOccupy[row][col]
-                    ? painter.setBrush(QBrush(qRgb(0,0,0)))
-                    : painter.setBrush(QBrush(qRgb(255,255,255)));
-            pos = Change2Paint(pos);
-            painter.drawRect(QRect(pos,pos + CELL_SIZE));
-        }
-    }
-
     // 左上黄色小格，代表探索过
     painter.setBrush(QBrush(qRgb(255,255,0)));
     for (int row = 0; row < ROW; row++) {
@@ -309,6 +293,17 @@ void Widget::paintEvent(QPaintEvent *)
     pos = Change2Paint(endPos);
     painter.drawRect(QRect(pos,pos + CELL_SIZE));
 
+    painter.setBrush(QBrush(qRgb(0,0,0)));
+    // 黑色为墙，白色为空地
+    for (int row = 0; row < ROW; row++) {
+        for (int col = 0; col < COL; col++) {
+            if (snakeOccupy[row][col]) {
+                QPoint pos(row,col);
+                pos = Change2Paint(pos);
+                painter.drawRect(QRect(pos,pos + CELL_SIZE));
+            }
+        }
+    }
 
 }
 
