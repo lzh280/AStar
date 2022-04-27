@@ -7,6 +7,7 @@ int mapHeight = 0;
 
 QPoint startPos = QPoint(3,7);
 QPoint endPos = QPoint(5,13);
+QPoint popPos = QPoint(-1,-1);
 QPoint *pnowPos = NULL;
 Cell_t* prootCell = NULL;
 Cell_t* pnowCell = NULL;
@@ -73,12 +74,18 @@ void PushCostCell(Cell_t* pCell)
     int emptyCellIdx = -1;
     // 找到空元素就记录，找到自身，直接覆盖载入
     for (int cellIdx = 0; cellIdx < ASTAR_WIDTH * ASTAR_HEIGHT; ++cellIdx) {
-        if (emptyCellIdx == -1 && NULL == cellCost[cellIdx]) {
-            emptyCellIdx = cellIdx;
+        // 空情况下，只记录第一个为空的下标
+        if (NULL == cellCost[cellIdx]) {
+            if (emptyCellIdx == -1) {
+                emptyCellIdx = cellIdx;
+            }
         }
-        if (pCell == cellCost[cellIdx]) {
-            emptyCellIdx = cellIdx;
-            break;
+        // 非空情况下，判断是否为自身，如果是，直接结束查找循环
+        if (NULL != cellCost[cellIdx]) {
+            if (pCell->pos == cellCost[cellIdx]->pos) {
+                emptyCellIdx = cellIdx;
+                break;
+            }
         }
     }
     cellCost[emptyCellIdx] = pCell;
@@ -92,7 +99,7 @@ Cell_t* PopMinCostCell()
     // 从内存内寻找最小代价的cell
     Cell_t* pminCostCell = NULL;
     int minCellIdx = 0;
-    for (int cellIdx = 0; cellIdx < ASTAR_WIDTH * ASTAR_HEIGHT; ++cellIdx)
+    for (int cellIdx = 0; cellIdx < mapWidth * mapHeight; ++cellIdx)
     {
         // 如果为空，跳过
         if (NULL == cellCost[cellIdx]) {
@@ -104,11 +111,13 @@ Cell_t* PopMinCostCell()
             pminCostCell = cellCost[minCellIdx];
             continue ;
         }
+        // 先寻找总代价最小的点们，，，然后再在其中寻找h代价最小的点
         if (cellCost[cellIdx]->gCost + cellCost[cellIdx]->hCost
-                <= cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost )
-        {
-            minCellIdx = cellIdx;
-            pminCostCell = cellCost[minCellIdx];
+                <= cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost ) {
+            if (cellCost[cellIdx]->hCost < cellCost[minCellIdx]->hCost) {
+                minCellIdx = cellIdx;
+                pminCostCell = cellCost[minCellIdx];
+            }
         }
 
     }
@@ -140,6 +149,7 @@ char AStarSearch()
             return 0;
         }
         // 将路径记录下来
+        popPos = pnowCell->pos;
         walkMark[pnowCell->pos.y() * ASTAR_WIDTH + pnowCell->pos.x()] = WALKED;
 
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {

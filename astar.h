@@ -35,6 +35,7 @@ extern Cell_t* pnowCell;
 extern QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT];
 extern char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT];
 extern QPoint walkDir[4];
+extern QPoint popPos;
 
 
 void AStarInit(QPoint _startPos,QPoint _endPos);

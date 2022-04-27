@@ -133,8 +133,12 @@ void Widget::paintEvent(QPaintEvent *)
         }
     }
 
-    // 绿色为路径
+    // 绘制当前探索点
     QPoint pos;
+    painter.setBrush(QBrush(qRgb(0,255,255)));
+    pos = Change2Paint(popPos);
+    painter.drawRect(QRect(pos,pos + CELL_SIZE));
+    // 绿色为路径
     QPoint* proute = route;
     painter.setBrush(QBrush(qRgb(0,255,0)));
     while (QPoint(-1,-1) != *proute) {
