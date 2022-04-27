@@ -4,8 +4,8 @@
 #include <QWidget>
 #include <QDebug>
 
-#define ROW 10 // 最大行数，常用于x，数组前下标
-#define COL 20 // 最大列数，常用于y，数组后下标
+#define ASTAR_HEIGHT 25 // 最大行数，常用于x，数组前下标
+#define ASTAR_WIDTH 25 // 最大列数，常用于y，数组后下标
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
 
@@ -32,13 +32,13 @@ extern QPoint *pnowPos;
 extern Cell_t* prootCell;
 extern Cell_t* pnowCell;
 // 辅助地图，用于记录是否走过
-extern QPoint route[ROW * COL];
-extern char walkMark[ROW * COL];
+extern QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT];
+extern char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT];
 extern QPoint walkDir[4];
 
 
 void AStarInit(QPoint _startPos,QPoint _endPos);
-void AStarLoadMap(char* map, int w, int l);
+void AStarLoadMap(char* map, int w, int h);
 char AStarSearch();
 void AStarSave();
 void PushCostCell(Cell_t* pCell);

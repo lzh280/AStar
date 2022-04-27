@@ -20,8 +20,8 @@ Widget::Widget(QWidget *parent)
     , ui(new Ui::Widget)
 {
     ui->setupUi(this);
-    startPos = QPoint(3,7);
-    endPos = QPoint(5,13);
+    startPos = QPoint(7,3);
+    endPos = QPoint(13,5);
 
     qsrand(QTime::currentTime().msec());
 
@@ -94,8 +94,8 @@ Widget::~Widget()
 QPoint Change2Paint(QPoint srcPoint)
 {
     QPoint dstPos;
-    dstPos.setX(srcPoint.y());
-    dstPos.setY(srcPoint.x());
+    dstPos.setX(srcPoint.x());
+    dstPos.setY(srcPoint.y());
     dstPos = dstPos * SCALE;
     return  dstPos;
 }
@@ -107,7 +107,7 @@ void Widget::mousePressEvent(QMouseEvent *e)
     // qpoint类的除号重载，使用了浮点运算，且四舍五入
     mousePos.rx() /= SCALE;
     mousePos.ry() /= SCALE;
-    // 在坐标系中的xy与数组中xy是相反的，切记。
+    // 数组采用yx坐标系
     // y在数组的前面一个坐标，代表第多少行，放置鼠标导致越界
     if (0 <= mousePos.y() && mousePos.y() < ROW
             && 0 <= mousePos.x() && mousePos.x() < COL)
@@ -123,10 +123,10 @@ void Widget::paintEvent(QPaintEvent *)
     painter.setPen(qRgb(255,255,255));
     // 黄色小格，代表探索过
     painter.setBrush(QBrush(qRgb(255,255,0)));
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            QPoint pos(col,row);
-            if (walkMark[col * ROW + row]) {
+    for (int y = 0; y < ASTAR_HEIGHT; y++) {
+        for (int x = 0; x < ASTAR_WIDTH; x++) {
+            if (walkMark[y * ASTAR_WIDTH + x]) {
+                QPoint pos(x, y);
                 pos = Change2Paint(pos);
                 painter.drawRect(QRect(pos,pos + CELL_SIZE));
             }
@@ -152,10 +152,10 @@ void Widget::paintEvent(QPaintEvent *)
 
     painter.setBrush(QBrush(qRgb(0,0,0)));
     // 黑色为墙，白色为空地
-    for (int row = 0; row < ROW; row++) {
-        for (int col = 0; col < COL; col++) {
-            if (snakeOccupy[row][col]) {
-                QPoint pos(row,col);
+    for (int y = 0; y < ROW; y++) {
+        for (int x = 0; x < COL; x++) {
+            if (snakeOccupy[y][x]) {
+                QPoint pos(x,y);
                 pos = Change2Paint(pos);
                 painter.drawRect(QRect(pos,pos + CELL_SIZE));
             }

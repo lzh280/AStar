@@ -11,9 +11,9 @@ QPoint *pnowPos = NULL;
 Cell_t* prootCell = NULL;
 Cell_t* pnowCell = NULL;
 // 辅助地图，用于记录是否走过
-QPoint route[ROW * COL] = {QPoint(0,0)};
-char walkMark[ROW * COL] = {0};
-Cell_Struct *cellCost[ROW * COL] = {0};
+QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT] = {QPoint(0,0)};
+char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT] = {0};
+Cell_Struct *cellCost[ASTAR_WIDTH * ASTAR_HEIGHT] = {0};
 QPoint walkDir[4] = {DIR_UP,DIR_DOWN,DIR_LEFT,DIR_RIGHT};
 
 void AStarLoadMap(char* map, int w,int h)
@@ -39,11 +39,11 @@ void AStarInit(QPoint _startPos,QPoint _endPos)
 //        pnowCell = pnowCell->parent;
 //    }
     pnowPos = route;
-    for (int i = 0; i< ROW * COL; ++i) {
+    for (int i = 0; i< ASTAR_WIDTH * ASTAR_HEIGHT; ++i) {
         route[i] = QPoint(-1,-1);
+        cellCost[i] = NULL;
+        walkMark[i] = 0;
     }
-    memset(cellCost,0,sizeof(cellCost));
-    memset(walkMark,0,sizeof(walkMark));
 
     // 初始化起点与终点
     startPos = _startPos;
@@ -70,10 +70,13 @@ void AStarSave(void)
 
 void PushCostCell(Cell_t* pCell)
 {
-    int emptyCellIdx = 0;
-    // 找到空元素，直接载入
-    for (int cellIdx = 0; cellIdx < ROW * COL; ++cellIdx) {
-        if (NULL == cellCost[cellIdx]) {
+    int emptyCellIdx = -1;
+    // 找到空元素就记录，找到自身，直接覆盖载入
+    for (int cellIdx = 0; cellIdx < ASTAR_WIDTH * ASTAR_HEIGHT; ++cellIdx) {
+        if (emptyCellIdx == -1 && NULL == cellCost[cellIdx]) {
+            emptyCellIdx = cellIdx;
+        }
+        if (pCell == cellCost[cellIdx]) {
             emptyCellIdx = cellIdx;
             break;
         }
@@ -89,7 +92,7 @@ Cell_t* PopMinCostCell()
     // 从内存内寻找最小代价的cell
     Cell_t* pminCostCell = NULL;
     int minCellIdx = 0;
-    for (int cellIdx = 0; cellIdx < ROW * COL; ++cellIdx)
+    for (int cellIdx = 0; cellIdx < ASTAR_WIDTH * ASTAR_HEIGHT; ++cellIdx)
     {
         // 如果为空，跳过
         if (NULL == cellCost[cellIdx]) {
@@ -101,8 +104,8 @@ Cell_t* PopMinCostCell()
             pminCostCell = cellCost[minCellIdx];
             continue ;
         }
-        if (cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost
-              > cellCost[cellIdx]->gCost + cellCost[cellIdx]->hCost)
+        if (cellCost[cellIdx]->gCost + cellCost[cellIdx]->hCost
+                <= cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost )
         {
             minCellIdx = cellIdx;
             pminCostCell = cellCost[minCellIdx];
@@ -137,7 +140,7 @@ char AStarSearch()
             return 0;
         }
         // 将路径记录下来
-        walkMark[pnowCell->pos.y() * COL + pnowCell->pos.x()] = WALKED;
+        walkMark[pnowCell->pos.y() * ASTAR_WIDTH + pnowCell->pos.x()] = WALKED;
 
         for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
             int childX = (pnowCell->pos + walkDir[dirIdex]).x();
@@ -145,8 +148,8 @@ char AStarSearch()
 
             // 如果即将访问的节点超出范围 或 已探索 或 是墙壁，那么跳过
             if (childX < 0 || mapWidth <= childX || childY < 0 || mapHeight <= childY
-                    || WALKED == walkMark[childY * COL + childX]
-                    || wallMap[childY * COL + childX]) {
+                    || WALKED == walkMark[childY * ASTAR_WIDTH + childX]
+                    || wallMap[childY * mapWidth + childX]) {
                 continue ;
             }
             // 先申请节点，，，，等找到最终路径，再一次性全部释放

@@ -12,7 +12,7 @@
 #include <QCheckBox>
 #include "astar.h"
 
-#define ROW 10 // 行，常用于x，数组前下标
+#define ROW 20 // 行，常用于x，数组前下标
 #define COL 20 // 列，常用于y，数组后下标
 
 #define SCALE (20)
