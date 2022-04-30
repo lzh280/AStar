@@ -15,6 +15,11 @@
 #define DIR_LEFT    QPoint(-1,0)
 #define DIR_RIGHT   QPoint(1,0)
 
+#define ASTAR_SUCCEED   (0)
+#define ASTAR_FAIL      (1)
+#define ASTAR_SEARCH    (2)
+#define ASTAR_GOBACK    (3)
+
 // F = G + H
 // gCost为当前已走的代价
 // hCost表示预估代价
@@ -28,9 +33,10 @@ typedef struct Cell_Struct{
     struct Cell_Struct* Childs[4]; // 此格子往4个方向，走向4个不同的格子
 }Cell_t;
 
-extern QPoint *pnowPos;
+extern QPoint* pnowPos;
 extern Cell_t* prootCell;
 extern Cell_t* pnowCell;
+extern Cell_t* pbackCell;
 // 辅助地图，用于记录是否走过
 extern QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT];
 extern char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT];
@@ -41,7 +47,7 @@ extern QPoint popPos;
 void AStarInit(QPoint _startPos,QPoint _endPos);
 void AStarLoadMap(char* map, int w, int h);
 char AStarSearch();
-void AStarSave();
+char AStarSave();
 void PushCostCell(Cell_t* pCell);
 Cell_t* PopMinCostCell(void);
 

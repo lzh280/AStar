@@ -77,12 +77,14 @@ void Widget::Init()
 
 void Widget::Search(void)
 {
-    char result = 0;
-    result = AStarSearch();
-    if (result == 0
-            || result == 2) {
+    char searchResult = 0;
+    searchResult = AStarSearch();
+    if (searchResult == ASTAR_SUCCEED) {
         runTimer.stop();
-        qDebug() << "寻路结束。";
+        qDebug() << "寻路成功。";
+    }else if (searchResult == ASTAR_FAIL) {
+        runTimer.stop();
+        qDebug() << "寻路失败。";
     }
 }
 

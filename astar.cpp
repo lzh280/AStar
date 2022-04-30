@@ -5,12 +5,14 @@ char *wallMap = NULL;
 int mapWidth = 0;
 int mapHeight = 0;
 
+char astarStatus = 0;
 QPoint startPos = QPoint(3,7);
 QPoint endPos = QPoint(5,13);
 QPoint popPos = QPoint(-1,-1);
-QPoint *pnowPos = NULL;
+QPoint* pnowPos = NULL;
 Cell_t* prootCell = NULL;
 Cell_t* pnowCell = NULL;
+Cell_t* pbackCell = NULL;
 // 辅助地图，用于记录是否走过
 QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT] = {QPoint(0,0)};
 char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT] = {0};
@@ -45,6 +47,7 @@ void AStarInit(QPoint _startPos,QPoint _endPos)
         cellCost[i] = NULL;
         walkMark[i] = 0;
     }
+    pbackCell = NULL;
 
     // 初始化起点与终点
     startPos = _startPos;
@@ -58,15 +61,22 @@ void AStarInit(QPoint _startPos,QPoint _endPos)
     PushCostCell(prootCell);
 }
 
-void AStarSave(void)
+char AStarSave(void)
 {
-    pnowPos = route;
-    Cell_t *pbackCell = pnowCell;
-    while (pbackCell->pos != startPos) {
+    if (NULL == pbackCell) {
+        pbackCell = pnowCell;
+    }
+    //while (pbackCell->pos != startPos) {
+    if (pbackCell->pos != startPos) {
         *pnowPos = pbackCell->pos;
         ++pnowPos;
         pbackCell = pbackCell->parent;
+        astarStatus = ASTAR_GOBACK;
+        return astarStatus;
     }
+    pbackCell = NULL;
+    astarStatus = ASTAR_SUCCEED;
+    return astarStatus;
 }
 
 void PushCostCell(Cell_t* pCell)
@@ -137,16 +147,18 @@ char AStarSearch()
     //while (pnowCell->pos != endPos)
     {
         // 寻找最小代价节点进行弹出，如果找不到，说明寻路结束，且失败
-        pnowCell = PopMinCostCell();
+        if (astarStatus != ASTAR_GOBACK) {
+            pnowCell = PopMinCostCell();
+        }
         if (NULL == pnowCell) {
             //AStarInit();
-            return 2;
+            return ASTAR_FAIL;
         }
         // 解决起点与终点重合时，说明寻路结束，且成功
         if (endPos == pnowCell->pos) {
-            AStarSave();
+            return AStarSave();
             //AStarInit();
-            return 0;
+            return ASTAR_SUCCEED;
         }
         // 将路径记录下来
         popPos = pnowCell->pos;
@@ -176,5 +188,5 @@ char AStarSearch()
             PushCostCell(pchildCell);
         }
     }
-    return 1;
+    return ASTAR_SEARCH;
 }
