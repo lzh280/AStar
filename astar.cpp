@@ -26,22 +26,24 @@ void AStarLoadMap(char* map, int w,int h)
     mapWidth = w;
     mapHeight = h;
 }
+void AStarFree(Cell_t* prootCell)
+{
+    for (int i = 0; i < 4; ++i) {
+        if (NULL != prootCell->Childs[i]) {
+            AStarFree(prootCell->Childs[i]);
+        }
+    }
+    delete prootCell;
+}
 
 void AStarInit(QPoint _startPos,QPoint _endPos)
 {
 //    qDebug() << "现在清空所有数据，重新开始寻路。";
 //    // 先判断，判断是否存在历史残留的路径，需要释放内存
-//    if (NULL != pnowCell)
-//    {
-//        for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
-//            if (NULL != pnowCell->Childs[dirIdex]) {
-//                free(pnowCell->Childs[dirIdex]);
-//                //pnowCell->Childs[dirIdex] = NULL;
-//            }
-//        }
-//        // 变成父节点，并且逐层寻找，并
-//        pnowCell = pnowCell->parent;
-//    }
+    if (NULL != prootCell)
+    {
+        AStarFree(prootCell);
+    }
     pnowPos = route;
     for (int i = 0; i< ASTAR_WIDTH * ASTAR_HEIGHT; ++i) {
         route[i] = QPoint(-1,-1);
@@ -54,7 +56,7 @@ void AStarInit(QPoint _startPos,QPoint _endPos)
     // 初始化起点与终点
     startPos = _startPos;
     endPos = _endPos;
-    Cell_t* prootCell = (Cell_t*)malloc(sizeof(Cell_t));
+    prootCell = (Cell_t*)malloc(sizeof(Cell_t));
     memset(prootCell,0,sizeof(Cell_t));
     prootCell->pos = startPos;
     prootCell->gCost = 0 * CELL_COST;
@@ -86,7 +88,7 @@ void PushCostCell(Cell_t* pCell)
     int existCellCnt = 0;
     int emptyCellIdx = -1;
     // 找到空元素就记录，找到自身，直接覆盖载入
-    for (int cellIdx = 0; cellIdx < ASTAR_WIDTH * ASTAR_HEIGHT; ++cellIdx) {
+    for (int cellIdx = 0; cellIdx < mapWidth * mapHeight && existCellCnt <= cellCostCnt; ++cellIdx) {
         // 找到一个可以插入地方，就直接结束查找
         // 不进行插入，先记录下来，需要查找是否存在自身
         if (NULL == cellCost[cellIdx]) {
@@ -101,18 +103,20 @@ void PushCostCell(Cell_t* pCell)
                 emptyCellIdx = cellIdx;
                 break;
             }
-            // 如果已经搜索完了所有已经存在的值，那么就不用再去搜索剩下的空值
-            if (existCellCnt > cellCostCnt)
-            {
-                break;
-            }
         }
     }
     // 只有插入到了不存在的地方，才认为有效个数增加
     if (NULL == cellCost[emptyCellIdx]) {
         ++cellCostCnt;
+        cellCost[emptyCellIdx] = pCell;
     }
-    cellCost[emptyCellIdx] = pCell;
+    // 只有当新节点代价更小时，才执行塞入操作,这样子的路径才是最优路径
+    if (NULL != cellCost[emptyCellIdx]
+             && pCell->gCost + pCell->hCost
+             < cellCost[emptyCellIdx]->gCost + cellCost[emptyCellIdx]->hCost)
+    {
+        cellCost[emptyCellIdx] = pCell;
+    }
     qDebug() << "入buff[" << emptyCellIdx << "]："
              << cellCost[emptyCellIdx]->pos << "，及其代价："
              << cellCost[emptyCellIdx]->gCost << "," << cellCost[emptyCellIdx]->hCost ;
@@ -124,10 +128,12 @@ Cell_t* PopMinCostCell()
     // 从内存内寻找最小代价的cell
     Cell_t* pminCostCell = NULL;
     int minCellIdx = -1;
-    for (int cellIdx = 0; cellIdx < mapWidth * mapHeight; ++cellIdx)
+    for (int cellIdx = 0; cellIdx < mapWidth * mapHeight && existCellCnt <= cellCostCnt; ++cellIdx)
     {
         // 如果为空，跳过
         if (NULL != cellCost[cellIdx]) {
+            // 有效的值增加，如果超过已经存在的值的个数，就不用再冗余比较后面的值了
+            ++existCellCnt;
 
             // 确定第一个有效值为初始值，用于比较并存储最小值,
             // 找到之后跳过此轮，此条件只会成立一次
@@ -135,18 +141,10 @@ Cell_t* PopMinCostCell()
                 minCellIdx = cellIdx;
                 continue ;
             }
-            // 先寻找总代价最小的点们，，，然后再在其中寻找h代价最小的点
+            // 寻找代价最小的点
             if (cellCost[cellIdx]->gCost + cellCost[cellIdx]->hCost
                     <= cellCost[minCellIdx]->gCost + cellCost[minCellIdx]->hCost ) {
-                if (cellCost[cellIdx]->hCost < cellCost[minCellIdx]->hCost) {
                     minCellIdx = cellIdx;
-                }
-            }
-            // 有效的值增加，如果超过已经存在的值的个数，就不用再冗余比较后面的值了
-            ++existCellCnt;
-            if (existCellCnt > cellCostCnt)
-            {
-                break;
             }
         }
 
