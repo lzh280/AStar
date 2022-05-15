@@ -18,7 +18,8 @@ QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT] = {QPoint(0,0)};
 char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT] = {0};
 Cell_Struct *cellCost[ASTAR_WIDTH * ASTAR_HEIGHT] = {0};
 int cellCostCnt = 0;
-QPoint walkDir[4] = {DIR_UP,DIR_DOWN,DIR_LEFT,DIR_RIGHT};
+QPoint walkDir[DIR_CNT] = {DIR_UP,DIR_DOWN,DIR_LEFT,DIR_RIGHT,
+                           DIR_LEFTUP,DIR_LEFTDOWN,DIR_RIGHTUP,DIR_RIGHTDOWN};
 
 void AStarLoadMap(char* map, int w,int h)
 {
@@ -183,7 +184,7 @@ char AStarSearch()
         popPos = pnowCell->pos;
         walkMark[pnowCell->pos.y() * ASTAR_WIDTH + pnowCell->pos.x()] = WALKED;
 
-        for (int dirIdex = 0; dirIdex < 4; ++dirIdex) {
+        for (int dirIdex = 0; dirIdex < DIR_CNT; ++dirIdex) {
             int childX = (pnowCell->pos + walkDir[dirIdex]).x();
             int childY = (pnowCell->pos + walkDir[dirIdex]).y();
 

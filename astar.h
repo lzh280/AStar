@@ -9,11 +9,16 @@
 #define CELL_COST 10 // 行走一格的代价
 #define WALKED  (1) // 判断是否已经走过，
 
+#define DIR_CNT     (8)
 // 定义屏幕坐标方向，前面坐标控制左右（x），后面坐标控制上下（y）
 #define DIR_UP      QPoint(0,-1)
 #define DIR_DOWN    QPoint(0,1)
 #define DIR_LEFT    QPoint(-1,0)
 #define DIR_RIGHT   QPoint(1,0)
+#define DIR_LEFTUP      QPoint(-1,-1)
+#define DIR_LEFTDOWN    QPoint(-1,1)
+#define DIR_RIGHTUP    QPoint(1,-1)
+#define DIR_RIGHTDOWN   QPoint(1,1)
 
 #define ASTAR_SUCCEED   (0)
 #define ASTAR_FAIL      (1)
@@ -30,7 +35,7 @@ typedef struct Cell_Struct{
     int gCost;
     int hCost;
     struct Cell_Struct* parent; // 走到当前格子的父格子
-    struct Cell_Struct* Childs[4]; // 此格子往4个方向，走向4个不同的格子
+    struct Cell_Struct* Childs[DIR_CNT]; // 此格子往4个方向，走向4个不同的格子
 }Cell_t;
 
 extern QPoint* pnowPos;
@@ -40,7 +45,7 @@ extern Cell_t* pbackCell;
 // 辅助地图，用于记录是否走过
 extern QPoint route[ASTAR_WIDTH * ASTAR_HEIGHT];
 extern char walkMark[ASTAR_WIDTH * ASTAR_HEIGHT];
-extern QPoint walkDir[4];
+extern QPoint walkDir[DIR_CNT];
 extern QPoint popPos;
 
 
